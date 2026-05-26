@@ -1,3 +1,21 @@
-from .services.rag_service import ask_question
+from contextlib import asynccontextmanager
 
-print(ask_question("Cách để chuyển đổi quyền từ Bác sĩ thành quản trị viên"))
+from fastapi import FastAPI
+
+from app.api.chat_routes import router
+from app.init_db import init_models
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+
+    await init_models()
+
+    yield
+
+
+app = FastAPI(
+    lifespan=lifespan
+)
+
+app.include_router(router)

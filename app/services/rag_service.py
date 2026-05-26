@@ -1,20 +1,52 @@
-from ..core.prompt import RAG_PROMPT
 from .retriever_service import retriever
 from .llm_service import llm
+from app.repositories.message_repository import get_message_from_session
+from langchain.agents import create_agent
+from langchain.messages import AIMessageChunk
+from langchain_core.messages import HumanMessage
 
-def ask_question(question: str):
+agent = create_agent(
+    model=llm,
+    tools=[]
+)
 
-    docs = retriever.invoke(question)
+async def ask_question(question: str, session_id: str, history):
+    messages = [
+        {
+            "role": message.role,
+            "content": message.content
+        }
 
-    context = "\n\n".join(
-        [doc.page_content for doc in docs]
+        for message in history
+    ]
+
+    answer = ""
+
+    stream = agent.astream(
+        {
+            "messages": [
+                *messages
+                ,HumanMessage(content=question)
+            ]
+        },
+        stream_mode="messages"
     )
 
-    prompt = RAG_PROMPT.format(
-        context=context,
-        question=question
-    )
+    async for token, metadata in stream:
 
-    response = llm.invoke(prompt)
+        if metadata["langgraph_node"] != "model":
+            continue
 
-    return response.content
+        if not isinstance(token, AIMessageChunk):
+            continue
+
+        for block in token.content_blocks:
+
+            if block["type"] == "text":
+
+                text = block["text"]
+
+                answer += text
+
+                # stream token về frontend
+                yield text

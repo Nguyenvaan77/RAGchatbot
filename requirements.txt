@@ -11,7 +11,11 @@ langchain-chroma
 chromadb
 
 sentence-transformers
-
+PyJWT
 pandas
 python-dotenv
 python-multipart
+
+sqlalchemy 
+pymysql
+aiomysql
